@@ -6,6 +6,9 @@ import span
 from _opentracing import tracer as ot_tracer
 
 
+Format = ot_tracer.Format
+
+
 class Tracer(ot_tracer.Tracer):
     def __init__(self, service_name, sample_rate,
                  transport_handler, port):
@@ -15,7 +18,7 @@ class Tracer(ot_tracer.Tracer):
         self._transport_handler = transport_handler
         self._port = port
 
-        self._random = random.random()
+        random.seed()
 
     def start_span(self,
                    operation_name=None,
@@ -36,13 +39,22 @@ class Tracer(ot_tracer.Tracer):
         if child_of is None:
             trace_id = self._generate_id()
         else:
-            trace_id = child_of.trace_id
-            parent_id = child_of.span_id
-            paggage = child_of.baggage
+            parent = child_of.context
+            trace_id = parent.trace_id
+            parent_id = parent.span_id
+            paggage = parent.baggage
         span_id = self._generate_id()
 
         ctxt = span.SpanContext(trace_id, span_id, parent_id, baggage)
         return span.Span(self, ctxt, pyzk_span)
 
+    def inject(self, span_context, format, carrier):
+        span_context.inject(format, carrier)
+
+    def extract(self, format, carrier):
+        return span.SpanContext.extract(format, carrier)
+
     def _generate_id(self):
-        return self._random.getrandbits(64)
+        return random.getrandbits(64)
+
+child_of = ot_tracer.child_of
