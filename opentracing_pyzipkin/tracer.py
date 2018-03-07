@@ -2,8 +2,8 @@ import random
 
 from py_zipkin.zipkin import zipkin_span
 
-import span
-from _opentracing import tracer as ot_tracer
+from opentracing_pyzipkin import span
+from opentracing_pyzipkin._opentracing import tracer as ot_tracer
 
 
 Format = ot_tracer.Format

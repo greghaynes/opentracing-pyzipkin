@@ -1,7 +1,7 @@
 from urllib import parse as urlparse
 
-from _opentracing import span as ot_span
-from _opentracing import tracer as ot_tracer
+from opentracing_pyzipkin._opentracing import span as ot_span
+from opentracing_pyzipkin._opentracing import tracer as ot_tracer
 
 
 _BAGGAGE_PREFIX = '_baggage_'
@@ -34,7 +34,10 @@ class SpanContext(ot_span.SpanContext):
                 baggage[key[len(_BAGGAGE_PREFIX):]] = decoded
         kwargs = {}
         for prop in ('trace_id', 'span_id', 'parent_id'):
-            kwargs[prop] = carrier_decode(format, carrier[prop])
+            val = carrier_decode(format, carrier[prop])
+            if val is not None:
+                val = int(val, 16)
+            kwargs[prop] = val
         kwargs['baggage'] = baggage
         return SpanContext(**kwargs)
 
@@ -56,7 +59,10 @@ class SpanContext(ot_span.SpanContext):
 
     def inject(self, format, carrier):
         for prop in ('trace_id', 'span_id', 'parent_id'):
-            carrier[prop] = carrier_encode(format, getattr(self, prop))
+            val = getattr(self, prop)
+            if val is not None:
+                val = '%x' % val
+            carrier[prop] = carrier_encode(format, val)
         for key, val in self._baggage.items():
             carrier[_BAGGAGE_PREFIX + key] = carrier_encode(format, val)
 
